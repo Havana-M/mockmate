@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
-import { GlassCard } from "@/components/GlassCard";
+import { GlassCard } from "@/components/Glasscard";
+
 import { Button } from "@/components/Button";
 import { useSpeech } from "@/hooks/useSpeech";
 import {

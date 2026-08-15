@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
-import { GlassCard } from "@/components/GlassCard";
+import { GlassCard } from "@/components/Glasscard";
 import { Button } from "@/components/Button";
 import { User, Mail, Lock, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 
