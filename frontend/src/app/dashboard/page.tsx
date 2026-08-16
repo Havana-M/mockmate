@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { GlassCard } from "@/components/Glasscard";
@@ -21,180 +21,433 @@ import {
     FileText,
     Award,
     TrendingUp,
-    Clock,
     CheckCircle2,
     Sparkles,
     Bot,
+    AlertCircle,
 } from "lucide-react";
 
-const chartData = [
-    { session: "Session 1", score: 68 },
-    { session: "Session 2", score: 75 },
-    { session: "Session 3", score: 82 },
-    { session: "Session 4", score: 88 },
-    { session: "Session 5", score: 94 },
-];
+interface Resume {
+    id: number;
+    file_name: string;
+    created_at: string;
+    character_count: number;
+}
+
+interface ChartPoint {
+    session: string;
+    score: number;
+}
 
 export default function DashboardPage() {
     const router = useRouter();
-    const [roleTitle, setRoleTitle] = useState("Full Stack Developer");
+
+    const [roleTitle, setRoleTitle] = useState("");
     const [difficulty, setDifficulty] = useState("Medium");
+    const [selectedResumeId, setSelectedResumeId] = useState<number | null>(
+        null
+    );
+
+    const [resumes, setResumes] = useState<Resume[]>([]);
+    const [loadingResumes, setLoadingResumes] = useState(true);
     const [loading, setLoading] = useState(false);
-    const [userEmail, setUserEmail] = useState("Candidate");
+
+    const [userName, setUserName] = useState("Candidate");
+    const [error, setError] = useState<string | null>(null);
+
+    // These remain placeholders until we connect the real dashboard
+    // statistics endpoint in the next step.
+    const [averageScore] = useState(0);
+    const [completedSessions] = useState(0);
+    const [technicalQuestions] = useState(0);
+
+    const chartData: ChartPoint[] = [];
 
     useEffect(() => {
         const userStr = localStorage.getItem("mockmate_user");
+
         if (userStr) {
             try {
-                const u = JSON.parse(userStr);
-                setUserEmail(u.full_name || u.email || "Candidate");
-            } catch (e) { }
+                const user = JSON.parse(userStr);
+                setUserName(
+                    user.full_name ||
+                    user.email ||
+                    "Candidate"
+                );
+            } catch {
+                setUserName("Candidate");
+            }
         }
+
+        loadResumes();
     }, []);
 
-    const handleStartSession = async () => {
-        setLoading(true);
+    const loadResumes = async () => {
         try {
-            const token = localStorage.getItem("mockmate_token");
-            const res = await fetch(`${API_BASE_URL}/api/interview/generate`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    role_title: roleTitle,
-                    difficulty: difficulty,
-                }),
-            });
+            setLoadingResumes(true);
+            setError(null);
 
-            const data = await res.json();
-            if (res.ok && data.session_id) {
-                router.push(`/interview/${data.session_id}`);
+            const token = localStorage.getItem("mockmate_token");
+
+            if (!token) {
+                router.push("/login");
+                return;
+            }
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/resume/my-resumes`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.detail || "Failed to load resumes"
+                );
+            }
+
+            setResumes(data);
+
+            // Automatically select the most recently uploaded resume.
+            if (data.length > 0) {
+                setSelectedResumeId(data[0].id);
             }
         } catch (err) {
-            console.error("Failed to start session:", err);
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Failed to load your resumes"
+            );
+        } finally {
+            setLoadingResumes(false);
+        }
+    };
+
+    const handleStartSession = async () => {
+        setError(null);
+
+        if (!roleTitle.trim()) {
+            setError("Please enter your target job position.");
+            return;
+        }
+
+        if (!selectedResumeId) {
+            setError(
+                "Please upload a resume before starting an interview."
+            );
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            const token = localStorage.getItem("mockmate_token");
+
+            if (!token) {
+                router.push("/login");
+                return;
+            }
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/interview/generate`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        role_title: roleTitle.trim(),
+                        difficulty,
+                        resume_id: selectedResumeId,
+                    }),
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.detail ||
+                    "Failed to create interview session"
+                );
+            }
+
+            if (!data.session_id) {
+                throw new Error(
+                    "The backend did not return a session ID."
+                );
+            }
+
+            router.push(`/interview/${data.session_id}`);
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Failed to start interview"
+            );
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-[#090d16] text-white flex flex-col justify-between selection:bg-indigo-500/30">
+        <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
             <Navbar />
 
-            <main className="container mx-auto px-6 py-8 flex-1 max-w-6xl">
+            <main className="container mx-auto max-w-6xl flex-1 px-6 py-8">
                 {/* Welcome Header */}
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-6 border-b border-white/10">
+                <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-6">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight mb-1">
-                            Welcome Back, <span className="gradient-text">{userEmail}</span> 👋
+                        <h1 className="mb-1 text-3xl font-bold tracking-tight">
+                            Welcome,{" "}
+                            <span className="gradient-text">
+                                {userName}
+                            </span>{" "}
+                            👋
                         </h1>
-                        <p className="text-gray-400 text-sm">
-                            Track your interview readiness, speech metrics, and STAR scoring progress.
+
+                        <p className="text-sm text-gray-400">
+                            Prepare for interviews using your real
+                            resume and real performance data.
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <span className="px-4 py-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                            <Sparkles className="w-4 h-4" />
-                            Pro AI Plan Active
-                        </span>
-                    </div>
+                    <span className="flex items-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-indigo-400">
+                        <Sparkles className="h-4 w-4" />
+                        AI Interview Platform
+                    </span>
                 </div>
 
-                {/* Top 3 Metric Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <GlassCard className="p-6 border border-white/10 flex items-center justify-between">
+                {/* Error */}
+                {error && (
+                    <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+                        <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                        <span>{error}</span>
+                    </div>
+                )}
+
+                {/* Current statistics */}
+                <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+                    <GlassCard className="flex items-center justify-between border border-white/10 p-6">
                         <div>
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                                Average STAR Score
+                            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                Average Score
                             </p>
-                            <h3 className="text-3xl font-bold text-white">88%</h3>
-                            <span className="text-xs text-emerald-400 flex items-center gap-1 mt-1 font-medium">
-                                <TrendingUp className="w-3.5 h-3.5" /> +14% this week
+
+                            <h3 className="text-3xl font-bold text-white">
+                                {averageScore > 0
+                                    ? `${averageScore}%`
+                                    : "—"}
+                            </h3>
+
+                            <span className="mt-1 flex items-center gap-1 text-xs font-medium text-gray-500">
+                                <TrendingUp className="h-3.5 w-3.5" />
+                                Based on completed interviews
                             </span>
                         </div>
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                            <Award className="w-6 h-6" />
+
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-400">
+                            <Award className="h-6 w-6" />
                         </div>
                     </GlassCard>
 
-                    <GlassCard className="p-6 border border-white/10 flex items-center justify-between">
+                    <GlassCard className="flex items-center justify-between border border-white/10 p-6">
                         <div>
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                                Completed Mock Sessions
+                            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                Completed Sessions
                             </p>
-                            <h3 className="text-3xl font-bold text-white">5 Sessions</h3>
-                            <span className="text-xs text-gray-400 mt-1 block font-medium">
-                                12 Technical Questions Solved
+
+                            <h3 className="text-3xl font-bold text-white">
+                                {completedSessions}
+                            </h3>
+
+                            <span className="mt-1 block text-xs font-medium text-gray-500">
+                                {technicalQuestions} questions evaluated
                             </span>
                         </div>
-                        <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-                            <CheckCircle2 className="w-6 h-6" />
+
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-purple-500/20 bg-purple-500/10 text-purple-400">
+                            <CheckCircle2 className="h-6 w-6" />
                         </div>
                     </GlassCard>
 
-                    <GlassCard className="p-6 border border-white/10 flex items-center justify-between">
+                    <GlassCard className="flex items-center justify-between border border-white/10 p-6">
                         <div>
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
                                 Resumes Analyzed
                             </p>
-                            <h3 className="text-3xl font-bold text-white">1 Active PDF</h3>
-                            <span className="text-xs text-indigo-400 mt-1 block font-medium">
-                                RAG Vector Context Enabled
+
+                            <h3 className="text-3xl font-bold text-white">
+                                {resumes.length}
+                            </h3>
+
+                            <span className="mt-1 block text-xs font-medium text-indigo-400">
+                                Your uploaded resumes
                             </span>
                         </div>
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                            <FileText className="w-6 h-6" />
+
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
+                            <FileText className="h-6 w-6" />
                         </div>
                     </GlassCard>
                 </div>
 
-                {/* Main Grid: Launch New Session & Progress Analytics */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                    {/* Launch New Session Card */}
-                    <div className="md:col-span-5 flex flex-col">
-                        <GlassCard className="p-8 border border-white/10 flex-1 flex flex-col justify-between relative overflow-hidden">
-                            <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
+                    {/* Interview Configuration */}
+                    <div className="md:col-span-5">
+                        <GlassCard className="relative flex h-full flex-col justify-between overflow-hidden border border-white/10 p-8">
+                            <div className="absolute -left-24 -top-24 h-48 w-48 rounded-full bg-indigo-500/20 blur-3xl" />
 
                             <div>
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                                        <Bot className="w-5 h-5 text-white" />
+                                <div className="mb-6 flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 shadow-lg shadow-indigo-500/20">
+                                        <Bot className="h-5 w-5 text-white" />
                                     </div>
+
                                     <div>
-                                        <h3 className="text-xl font-bold text-white">Start AI Interview</h3>
-                                        <p className="text-xs text-gray-400">Configure job role & difficulty</p>
+                                        <h3 className="text-xl font-bold text-white">
+                                            Start AI Interview
+                                        </h3>
+
+                                        <p className="text-xs text-gray-400">
+                                            Use your real resume
+                                        </p>
                                     </div>
                                 </div>
 
-                                <div className="space-y-4 mb-6">
+                                <div className="mb-6 space-y-5">
+                                    {/* Resume */}
                                     <div>
-                                        <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                                        <div className="mb-2 flex items-center justify-between">
+                                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300">
+                                                Resume
+                                            </label>
+
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    router.push(
+                                                        "/resume"
+                                                    )
+                                                }
+                                                className="flex items-center gap-1 text-xs font-medium text-indigo-400 hover:text-indigo-300"
+                                            >
+                                                <Upload className="h-3.5 w-3.5" />
+                                                Manage resumes
+                                            </button>
+                                        </div>
+
+                                        {loadingResumes ? (
+                                            <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-400">
+                                                Loading your resumes...
+                                            </div>
+                                        ) : resumes.length === 0 ? (
+                                            <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
+                                                <div className="flex items-start gap-3">
+                                                    <FileText className="mt-0.5 h-5 w-5 text-yellow-400" />
+
+                                                    <div>
+                                                        <p className="text-sm font-medium text-yellow-300">
+                                                            Resume required
+                                                        </p>
+
+                                                        <p className="mt-1 text-xs text-yellow-200/70">
+                                                            Upload a PDF resume before starting your interview.
+                                                        </p>
+
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="mt-3"
+                                                            onClick={() =>
+                                                                router.push(
+                                                                    "/resume"
+                                                                )
+                                                            }
+                                                        >
+                                                            Upload Resume
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <select
+                                                value={
+                                                    selectedResumeId ?? ""
+                                                }
+                                                onChange={(e) =>
+                                                    setSelectedResumeId(
+                                                        Number(
+                                                            e.target
+                                                                .value
+                                                        )
+                                                    )
+                                                }
+                                                className="w-full rounded-xl border border-white/10 bg-[#0f172a] px-4 py-3 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
+                                            >
+                                                {resumes.map((resume) => (
+                                                    <option
+                                                        key={resume.id}
+                                                        value={resume.id}
+                                                    >
+                                                        {resume.file_name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        )}
+                                    </div>
+
+                                    {/* Role */}
+                                    <div>
+                                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-300">
                                             Target Job Position
                                         </label>
+
                                         <input
                                             type="text"
                                             value={roleTitle}
-                                            onChange={(e) => setRoleTitle(e.target.value)}
-                                            placeholder="e.g. Full Stack Engineer"
-                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 text-sm"
+                                            onChange={(e) =>
+                                                setRoleTitle(
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="e.g. Full Stack Developer"
+                                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-indigo-500/50 focus:outline-none"
                                         />
                                     </div>
 
+                                    {/* Difficulty */}
                                     <div>
-                                        <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-300">
                                             Target Difficulty
                                         </label>
+
                                         <select
                                             value={difficulty}
-                                            onChange={(e) => setDifficulty(e.target.value)}
-                                            className="w-full px-4 py-3 bg-[#0f172a] border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500/50 text-sm"
+                                            onChange={(e) =>
+                                                setDifficulty(
+                                                    e.target.value
+                                                )
+                                            }
+                                            className="w-full rounded-xl border border-white/10 bg-[#0f172a] px-4 py-3 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
                                         >
-                                            <option value="Easy">Easy (Conceptual & Fundamentals)</option>
-                                            <option value="Medium">Medium (System Architecture & Coding)</option>
-                                            <option value="Hard">Hard (Senior Level & Deep Scaling)</option>
+                                            <option value="Easy">
+                                                Easy (Conceptual & Fundamentals)
+                                            </option>
+
+                                            <option value="Medium">
+                                                Medium (System Architecture & Coding)
+                                            </option>
+
+                                            <option value="Hard">
+                                                Hard (Senior Level & Deep Scaling)
+                                            </option>
                                         </select>
                                     </div>
                                 </div>
@@ -204,60 +457,135 @@ export default function DashboardPage() {
                                 variant="primary"
                                 size="lg"
                                 onClick={handleStartSession}
-                                disabled={loading}
-                                className="w-full justify-center group flex items-center gap-2"
+                                disabled={
+                                    loading ||
+                                    loadingResumes ||
+                                    resumes.length === 0 ||
+                                    !selectedResumeId ||
+                                    !roleTitle.trim()
+                                }
+                                className="group flex w-full items-center justify-center gap-2"
                             >
-                                <Play className="w-4 h-4 fill-current" />
-                                <span>{loading ? "Generating Session..." : "Launch Voice Interview"}</span>
+                                <Play className="h-4 w-4 fill-current" />
+
+                                <span>
+                                    {loading
+                                        ? "Generating Session..."
+                                        : "Launch Voice Interview"}
+                                </span>
                             </Button>
                         </GlassCard>
                     </div>
 
-                    {/* Analytics Chart Card */}
-                    <div className="md:col-span-7 flex flex-col">
-                        <GlassCard className="p-8 border border-white/10 flex-1 flex flex-col justify-between">
-                            <div className="flex items-center justify-between mb-6">
+                    {/* Performance */}
+                    <div className="md:col-span-7">
+                        <GlassCard className="flex h-full flex-col justify-between border border-white/10 p-8">
+                            <div className="mb-6 flex items-center justify-between">
                                 <div>
-                                    <h3 className="text-xl font-bold text-white mb-1">Performance Trend</h3>
-                                    <p className="text-xs text-gray-400">Score progression across mock sessions</p>
+                                    <h3 className="mb-1 text-xl font-bold text-white">
+                                        Performance Trend
+                                    </h3>
+
+                                    <p className="text-xs text-gray-400">
+                                        Real scores from completed
+                                        interviews
+                                    </p>
                                 </div>
-                                <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-                                    Upward Trend 🚀
+
+                                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-gray-500">
+                                    No results yet
                                 </span>
                             </div>
 
-                            {/* Recharts Area Chart */}
-                            <div className="h-64 w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                        <defs>
-                                            <linearGradient id="scoreGlow" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
-                                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                                        <XAxis dataKey="session" stroke="#94a3b8" fontSize={12} />
-                                        <YAxis stroke="#94a3b8" fontSize={12} domain={[0, 100]} />
-                                        <Tooltip
-                                            contentStyle={{
-                                                backgroundColor: "#0f172a",
-                                                borderColor: "#ffffff20",
-                                                borderRadius: "12px",
-                                                color: "#fff",
+                            {chartData.length === 0 ? (
+                                <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] text-center">
+                                    <TrendingUp className="mb-3 h-8 w-8 text-gray-600" />
+
+                                    <p className="text-sm font-medium text-gray-400">
+                                        Complete your first interview
+                                    </p>
+
+                                    <p className="mt-1 text-xs text-gray-600">
+                                        Your real performance scores will appear here.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="h-64 w-full">
+                                    <ResponsiveContainer
+                                        width="100%"
+                                        height="100%"
+                                    >
+                                        <AreaChart
+                                            data={chartData}
+                                            margin={{
+                                                top: 10,
+                                                right: 10,
+                                                left: -20,
+                                                bottom: 0,
                                             }}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="score"
-                                            stroke="#6366f1"
-                                            strokeWidth={3}
-                                            fillOpacity={1}
-                                            fill="url(#scoreGlow)"
-                                        />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </div>
+                                        >
+                                            <defs>
+                                                <linearGradient
+                                                    id="scoreGlow"
+                                                    x1="0"
+                                                    y1="0"
+                                                    x2="0"
+                                                    y2="1"
+                                                >
+                                                    <stop
+                                                        offset="5%"
+                                                        stopColor="#6366f1"
+                                                        stopOpacity={0.4}
+                                                    />
+                                                    <stop
+                                                        offset="95%"
+                                                        stopColor="#6366f1"
+                                                        stopOpacity={0}
+                                                    />
+                                                </linearGradient>
+                                            </defs>
+
+                                            <CartesianGrid
+                                                strokeDasharray="3 3"
+                                                stroke="#ffffff10"
+                                            />
+
+                                            <XAxis
+                                                dataKey="session"
+                                                stroke="#94a3b8"
+                                                fontSize={12}
+                                            />
+
+                                            <YAxis
+                                                stroke="#94a3b8"
+                                                fontSize={12}
+                                                domain={[0, 100]}
+                                            />
+
+                                            <Tooltip
+                                                contentStyle={{
+                                                    backgroundColor:
+                                                        "#0f172a",
+                                                    borderColor:
+                                                        "#ffffff20",
+                                                    borderRadius:
+                                                        "12px",
+                                                    color: "#fff",
+                                                }}
+                                            />
+
+                                            <Area
+                                                type="monotone"
+                                                dataKey="score"
+                                                stroke="#6366f1"
+                                                strokeWidth={3}
+                                                fillOpacity={1}
+                                                fill="url(#scoreGlow)"
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            )}
                         </GlassCard>
                     </div>
                 </div>
