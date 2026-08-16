@@ -2,21 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Navbar } from "@/components/Navbar";
-import { GlassCard } from "@/components/Glasscard";
-import { Button } from "@/components/Button";
-import { API_BASE_URL } from "@/lib/api";
+import AppShell from "@/components/AppShell";
 import {
-    ResponsiveContainer,
-    AreaChart,
-    Area,
-    XAxis,
-    YAxis,
-    Tooltip,
-    CartesianGrid,
-} from "recharts";
-import {
-    Play,
     Upload,
     FileText,
     Award,
@@ -26,6 +13,20 @@ import {
     Bot,
     AlertCircle,
 } from "lucide-react";
+import {
+    ResponsiveContainer,
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    Tooltip,
+    CartesianGrid,
+} from "recharts";
+import { API_BASE_URL } from "@/lib/api";
+
+const NAVY = "#0F172A";
+const SIDEBAR_NAVY = "#0F172A";
+const SIDEBAR_ICON = "#1E3A5F";
 
 interface Resume {
     id: number;
@@ -55,8 +56,6 @@ export default function DashboardPage() {
     const [userName, setUserName] = useState("Candidate");
     const [error, setError] = useState<string | null>(null);
 
-    // These remain placeholders until we connect the real dashboard
-    // statistics endpoint in the next step.
     const [averageScore] = useState(0);
     const [completedSessions] = useState(0);
     const [technicalQuestions] = useState(0);
@@ -69,6 +68,7 @@ export default function DashboardPage() {
         if (userStr) {
             try {
                 const user = JSON.parse(userStr);
+
                 setUserName(
                     user.full_name ||
                     user.email ||
@@ -113,7 +113,6 @@ export default function DashboardPage() {
 
             setResumes(data);
 
-            // Automatically select the most recently uploaded resume.
             if (data.length > 0) {
                 setSelectedResumeId(data[0].id);
             }
@@ -197,399 +196,577 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#090d16] text-white flex flex-col">
-            <Navbar />
+        <AppShell>
+            <div className="min-h-screen bg-white text-slate-900">
+                <main className="mx-auto max-w-7xl px-6 py-8">
 
-            <main className="container mx-auto max-w-6xl flex-1 px-6 py-8">
-                {/* Welcome Header */}
-                <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-6">
-                    <div>
-                        <h1 className="mb-1 text-3xl font-bold tracking-tight">
-                            Welcome,{" "}
-                            <span className="gradient-text">
-                                {userName}
-                            </span>{" "}
-                            👋
-                        </h1>
+                    {/* HEADER */}
+                    <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-6">
+                        <div>
+                            <p className="mb-2 text-sm font-medium text-slate-500">
+                                AI Interview Preparation
+                            </p>
 
-                        <p className="text-sm text-gray-400">
-                            Prepare for interviews using your real
-                            resume and real performance data.
-                        </p>
+                            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                                Welcome,{" "}
+                                <span className="text-[#0F172A]">
+                                    {userName}
+                                </span>{" "}
+                                👋
+                            </h1>
+
+                            <p className="mt-2 text-sm text-slate-500">
+                                Prepare smarter. Practice better. Get
+                                interview-ready.
+                            </p>
+                        </div>
+
+                        <div
+                            className="flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold"
+                            style={{
+                                borderColor: `${NAVY}20`,
+                                color: NAVY,
+                                backgroundColor: "#f8fafc",
+                            }}
+                        >
+                            <Sparkles className="h-4 w-4" />
+                            AI Interview Platform
+                        </div>
                     </div>
 
-                    <span className="flex items-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-indigo-400">
-                        <Sparkles className="h-4 w-4" />
-                        AI Interview Platform
-                    </span>
-                </div>
-
-                {/* Error */}
-                {error && (
-                    <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
-                        <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                        <span>{error}</span>
-                    </div>
-                )}
-
-                {/* Current statistics */}
-                <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-                    <GlassCard className="flex items-center justify-between border border-white/10 p-6">
-                        <div>
-                            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                                Average Score
-                            </p>
-
-                            <h3 className="text-3xl font-bold text-white">
-                                {averageScore > 0
-                                    ? `${averageScore}%`
-                                    : "—"}
-                            </h3>
-
-                            <span className="mt-1 flex items-center gap-1 text-xs font-medium text-gray-500">
-                                <TrendingUp className="h-3.5 w-3.5" />
-                                Based on completed interviews
-                            </span>
+                    {/* ERROR */}
+                    {error && (
+                        <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+                            <AlertCircle className="h-5 w-5" />
+                            <span>{error}</span>
                         </div>
+                    )}
 
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-400">
-                            <Award className="h-6 w-6" />
-                        </div>
-                    </GlassCard>
+                    {/* STAT CARDS */}
+                    <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
 
-                    <GlassCard className="flex items-center justify-between border border-white/10 p-6">
-                        <div>
-                            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                                Completed Sessions
-                            </p>
-
-                            <h3 className="text-3xl font-bold text-white">
-                                {completedSessions}
-                            </h3>
-
-                            <span className="mt-1 block text-xs font-medium text-gray-500">
-                                {technicalQuestions} questions evaluated
-                            </span>
-                        </div>
-
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-purple-500/20 bg-purple-500/10 text-purple-400">
-                            <CheckCircle2 className="h-6 w-6" />
-                        </div>
-                    </GlassCard>
-
-                    <GlassCard className="flex items-center justify-between border border-white/10 p-6">
-                        <div>
-                            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                                Resumes Analyzed
-                            </p>
-
-                            <h3 className="text-3xl font-bold text-white">
-                                {resumes.length}
-                            </h3>
-
-                            <span className="mt-1 block text-xs font-medium text-indigo-400">
-                                Your uploaded resumes
-                            </span>
-                        </div>
-
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
-                            <FileText className="h-6 w-6" />
-                        </div>
-                    </GlassCard>
-                </div>
-
-                <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
-                    {/* Interview Configuration */}
-                    <div className="md:col-span-5">
-                        <GlassCard className="relative flex h-full flex-col justify-between overflow-hidden border border-white/10 p-8">
-                            <div className="absolute -left-24 -top-24 h-48 w-48 rounded-full bg-indigo-500/20 blur-3xl" />
-
+                        {/* Average Score */}
+                        <div
+                            className="
+                                group flex items-center justify-between
+                                rounded-2xl border border-slate-200
+                                bg-white p-6 shadow-sm
+                                transition-all duration-300
+                                hover:-translate-y-1
+                                hover:shadow-xl
+                            "
+                        >
                             <div>
-                                <div className="mb-6 flex items-center gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 shadow-lg shadow-indigo-500/20">
-                                        <Bot className="h-5 w-5 text-white" />
-                                    </div>
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                    Average Score
+                                </p>
 
-                                    <div>
-                                        <h3 className="text-xl font-bold text-white">
-                                            Start AI Interview
-                                        </h3>
+                                <h3 className="text-3xl font-bold text-slate-900">
+                                    {averageScore > 0
+                                        ? `${averageScore}%`
+                                        : "—"}
+                                </h3>
 
-                                        <p className="text-xs text-gray-400">
-                                            Use your real resume
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="mb-6 space-y-5">
-                                    {/* Resume */}
-                                    <div>
-                                        <div className="mb-2 flex items-center justify-between">
-                                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-300">
-                                                Resume
-                                            </label>
-
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    router.push(
-                                                        "/resume"
-                                                    )
-                                                }
-                                                className="flex items-center gap-1 text-xs font-medium text-indigo-400 hover:text-indigo-300"
-                                            >
-                                                <Upload className="h-3.5 w-3.5" />
-                                                Manage resumes
-                                            </button>
-                                        </div>
-
-                                        {loadingResumes ? (
-                                            <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-400">
-                                                Loading your resumes...
-                                            </div>
-                                        ) : resumes.length === 0 ? (
-                                            <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
-                                                <div className="flex items-start gap-3">
-                                                    <FileText className="mt-0.5 h-5 w-5 text-yellow-400" />
-
-                                                    <div>
-                                                        <p className="text-sm font-medium text-yellow-300">
-                                                            Resume required
-                                                        </p>
-
-                                                        <p className="mt-1 text-xs text-yellow-200/70">
-                                                            Upload a PDF resume before starting your interview.
-                                                        </p>
-
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="mt-3"
-                                                            onClick={() =>
-                                                                router.push(
-                                                                    "/resume"
-                                                                )
-                                                            }
-                                                        >
-                                                            Upload Resume
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <select
-                                                value={
-                                                    selectedResumeId ?? ""
-                                                }
-                                                onChange={(e) =>
-                                                    setSelectedResumeId(
-                                                        Number(
-                                                            e.target
-                                                                .value
-                                                        )
-                                                    )
-                                                }
-                                                className="w-full rounded-xl border border-white/10 bg-[#0f172a] px-4 py-3 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
-                                            >
-                                                {resumes.map((resume) => (
-                                                    <option
-                                                        key={resume.id}
-                                                        value={resume.id}
-                                                    >
-                                                        {resume.file_name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        )}
-                                    </div>
-
-                                    {/* Role */}
-                                    <div>
-                                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-300">
-                                            Target Job Position
-                                        </label>
-
-                                        <input
-                                            type="text"
-                                            value={roleTitle}
-                                            onChange={(e) =>
-                                                setRoleTitle(
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="e.g. Full Stack Developer"
-                                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-gray-500 focus:border-indigo-500/50 focus:outline-none"
-                                        />
-                                    </div>
-
-                                    {/* Difficulty */}
-                                    <div>
-                                        <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-300">
-                                            Target Difficulty
-                                        </label>
-
-                                        <select
-                                            value={difficulty}
-                                            onChange={(e) =>
-                                                setDifficulty(
-                                                    e.target.value
-                                                )
-                                            }
-                                            className="w-full rounded-xl border border-white/10 bg-[#0f172a] px-4 py-3 text-sm text-white focus:border-indigo-500/50 focus:outline-none"
-                                        >
-                                            <option value="Easy">
-                                                Easy (Conceptual & Fundamentals)
-                                            </option>
-
-                                            <option value="Medium">
-                                                Medium (System Architecture & Coding)
-                                            </option>
-
-                                            <option value="Hard">
-                                                Hard (Senior Level & Deep Scaling)
-                                            </option>
-                                        </select>
-                                    </div>
-                                </div>
+                                <span className="mt-2 flex items-center gap-1 text-xs text-slate-500">
+                                    <TrendingUp className="h-3.5 w-3.5" />
+                                    Based on completed interviews
+                                </span>
                             </div>
 
-                            <Button
-                                variant="primary"
-                                size="lg"
-                                onClick={handleStartSession}
-                                disabled={
-                                    loading ||
-                                    loadingResumes ||
-                                    resumes.length === 0 ||
-                                    !selectedResumeId ||
-                                    !roleTitle.trim()
-                                }
-                                className="group flex w-full items-center justify-center gap-2"
+                            <div
+                                className="
+                                    flex h-12 w-12 items-center justify-center
+                                    rounded-xl text-white
+                                    shadow-sm
+                                "
+                                style={{
+                                    backgroundColor: SIDEBAR_NAVY,
+                                    border: `1px solid ${SIDEBAR_ICON}`,
+                                }}
                             >
-                                <Play className="h-4 w-4 fill-current" />
+                                <Award className="h-6 w-6" />
+                            </div>
+                        </div>
 
-                                <span>
-                                    {loading
-                                        ? "Generating Session..."
-                                        : "Launch Voice Interview"}
+                        {/* Completed Sessions */}
+                        <div
+                            className="
+                                group flex items-center justify-between
+                                rounded-2xl border border-slate-200
+                                bg-white p-6 shadow-sm
+                                transition-all duration-300
+                                hover:-translate-y-1
+                                hover:shadow-xl
+                            "
+                        >
+                            <div>
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                    Completed Sessions
+                                </p>
+
+                                <h3 className="text-3xl font-bold text-slate-900">
+                                    {completedSessions}
+                                </h3>
+
+                                <span className="mt-2 block text-xs text-slate-500">
+                                    {technicalQuestions} questions evaluated
                                 </span>
-                            </Button>
-                        </GlassCard>
+                            </div>
+
+                            <div
+                                className="
+                                    flex h-12 w-12 items-center justify-center
+                                    rounded-xl text-white
+                                    shadow-sm
+                                "
+                                style={{
+                                    backgroundColor: SIDEBAR_NAVY,
+                                    border: `1px solid ${SIDEBAR_ICON}`,
+                                }}
+                            >
+                                <CheckCircle2 className="h-6 w-6" />
+                            </div>
+                        </div>
+
+                        {/* Resumes */}
+                        <div
+                            className="
+                                group flex items-center justify-between
+                                rounded-2xl border border-slate-200
+                                bg-white p-6 shadow-sm
+                                transition-all duration-300
+                                hover:-translate-y-1
+                                hover:shadow-xl
+                            "
+                        >
+                            <div>
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                    Resumes Analyzed
+                                </p>
+
+                                <h3 className="text-3xl font-bold text-slate-900">
+                                    {resumes.length}
+                                </h3>
+
+                                <span
+                                    className="mt-2 block text-xs font-medium"
+                                    style={{ color: NAVY }}
+                                >
+                                    Your uploaded resumes
+                                </span>
+                            </div>
+
+                            <div
+                                className="
+                                    flex h-12 w-12 items-center justify-center
+                                    rounded-xl text-white
+                                    shadow-sm
+                                "
+                                style={{
+                                    backgroundColor: SIDEBAR_NAVY,
+                                    border: `1px solid ${SIDEBAR_ICON}`,
+                                }}
+                            >
+                                <FileText className="h-6 w-6" />
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Performance */}
-                    <div className="md:col-span-7">
-                        <GlassCard className="flex h-full flex-col justify-between border border-white/10 p-8">
-                            <div className="mb-6 flex items-center justify-between">
+                    {/* MAIN GRID */}
+                    <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
+
+                        {/* START INTERVIEW */}
+                        <div className="xl:col-span-5">
+                            <div
+                                className="
+                                    flex h-full flex-col justify-between
+                                    rounded-2xl border border-slate-200
+                                    bg-white p-8 shadow-sm
+                                    transition-all duration-300
+                                    hover:-translate-y-1
+                                    hover:shadow-xl
+                                "
+                            >
                                 <div>
-                                    <h3 className="mb-1 text-xl font-bold text-white">
-                                        Performance Trend
-                                    </h3>
 
-                                    <p className="text-xs text-gray-400">
-                                        Real scores from completed
-                                        interviews
-                                    </p>
-                                </div>
-
-                                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-gray-500">
-                                    No results yet
-                                </span>
-                            </div>
-
-                            {chartData.length === 0 ? (
-                                <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] text-center">
-                                    <TrendingUp className="mb-3 h-8 w-8 text-gray-600" />
-
-                                    <p className="text-sm font-medium text-gray-400">
-                                        Complete your first interview
-                                    </p>
-
-                                    <p className="mt-1 text-xs text-gray-600">
-                                        Your real performance scores will appear here.
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="h-64 w-full">
-                                    <ResponsiveContainer
-                                        width="100%"
-                                        height="100%"
-                                    >
-                                        <AreaChart
-                                            data={chartData}
-                                            margin={{
-                                                top: 10,
-                                                right: 10,
-                                                left: -20,
-                                                bottom: 0,
+                                    <div className="mb-7 flex items-center gap-4">
+                                        <div
+                                            className="
+                                                flex h-14 w-14 items-center
+                                                justify-center rounded-xl
+                                                text-white shadow-md
+                                            "
+                                            style={{
+                                                backgroundColor:
+                                                    SIDEBAR_NAVY,
+                                                border: `1px solid ${SIDEBAR_ICON}`,
                                             }}
                                         >
-                                            <defs>
-                                                <linearGradient
-                                                    id="scoreGlow"
-                                                    x1="0"
-                                                    y1="0"
-                                                    x2="0"
-                                                    y2="1"
+                                            <Bot className="h-6 w-6" />
+                                        </div>
+
+                                        <div>
+                                            <h3 className="text-xl font-bold text-slate-900">
+                                                Start AI Interview
+                                            </h3>
+
+                                            <p className="mt-1 text-xs text-slate-500">
+                                                Personalized interview based
+                                                on your profile
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+
+                                        {/* RESUME */}
+                                        <div>
+                                            <div className="mb-2 flex items-center justify-between">
+                                                <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                                    Resume
+                                                </label>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        router.push("/resume")
+                                                    }
+                                                    className="
+                                                        flex items-center gap-1
+                                                        text-xs font-semibold
+                                                        text-[#0F172A]
+                                                        transition
+                                                        hover:opacity-70
+                                                    "
                                                 >
-                                                    <stop
-                                                        offset="5%"
-                                                        stopColor="#6366f1"
-                                                        stopOpacity={0.4}
-                                                    />
-                                                    <stop
-                                                        offset="95%"
-                                                        stopColor="#6366f1"
-                                                        stopOpacity={0}
-                                                    />
-                                                </linearGradient>
-                                            </defs>
+                                                    <Upload className="h-3.5 w-3.5" />
+                                                    Manage resumes
+                                                </button>
+                                            </div>
 
-                                            <CartesianGrid
-                                                strokeDasharray="3 3"
-                                                stroke="#ffffff10"
-                                            />
+                                            {loadingResumes ? (
+                                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                                                    Loading your resumes...
+                                                </div>
+                                            ) : resumes.length === 0 ? (
+                                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                                    <div className="flex items-start gap-3">
+                                                        <FileText
+                                                            className="mt-0.5 h-5 w-5"
+                                                            style={{
+                                                                color: NAVY,
+                                                            }}
+                                                        />
 
-                                            <XAxis
-                                                dataKey="session"
-                                                stroke="#94a3b8"
-                                                fontSize={12}
-                                            />
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-slate-800">
+                                                                Resume required
+                                                            </p>
 
-                                            <YAxis
-                                                stroke="#94a3b8"
-                                                fontSize={12}
-                                                domain={[0, 100]}
-                                            />
+                                                            <p className="mt-1 text-xs text-slate-500">
+                                                                Upload a PDF
+                                                                resume before
+                                                                starting your
+                                                                interview.
+                                                            </p>
 
-                                            <Tooltip
-                                                contentStyle={{
-                                                    backgroundColor:
-                                                        "#0f172a",
-                                                    borderColor:
-                                                        "#ffffff20",
-                                                    borderRadius:
-                                                        "12px",
-                                                    color: "#fff",
-                                                }}
-                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    router.push(
+                                                                        "/resume"
+                                                                    )
+                                                                }
+                                                                className="
+                                                                    mt-3 rounded-lg
+                                                                    px-4 py-2
+                                                                    text-xs font-semibold
+                                                                    text-white
+                                                                    transition
+                                                                    hover:opacity-90
+                                                                "
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        NAVY,
+                                                                }}
+                                                            >
+                                                                Upload Resume
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <select
+                                                    value={
+                                                        selectedResumeId ?? ""
+                                                    }
+                                                    onChange={(e) =>
+                                                        setSelectedResumeId(
+                                                            Number(
+                                                                e.target.value
+                                                            )
+                                                        )
+                                                    }
+                                                    className="
+                                                        w-full rounded-xl
+                                                        border border-slate-200
+                                                        bg-white px-4 py-3
+                                                        text-sm text-slate-800
+                                                        outline-none transition
+                                                        focus:border-[#0F172A]
+                                                        focus:ring-2
+                                                        focus:ring-slate-200
+                                                    "
+                                                >
+                                                    {resumes.map(
+                                                        (resume) => (
+                                                            <option
+                                                                key={resume.id}
+                                                                value={
+                                                                    resume.id
+                                                                }
+                                                            >
+                                                                {
+                                                                    resume.file_name
+                                                                }
+                                                            </option>
+                                                        )
+                                                    )}
+                                                </select>
+                                            )}
+                                        </div>
 
-                                            <Area
-                                                type="monotone"
-                                                dataKey="score"
-                                                stroke="#6366f1"
-                                                strokeWidth={3}
-                                                fillOpacity={1}
-                                                fill="url(#scoreGlow)"
+                                        {/* JOB POSITION */}
+                                        <div>
+                                            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                                Target Job Position
+                                            </label>
+
+                                            <input
+                                                type="text"
+                                                value={roleTitle}
+                                                onChange={(e) =>
+                                                    setRoleTitle(
+                                                        e.target.value
+                                                    )
+                                                }
+                                                placeholder="e.g. Python Developer"
+                                                className="
+                                                    w-full rounded-xl
+                                                    border border-slate-200
+                                                    bg-white px-4 py-3
+                                                    text-sm text-slate-800
+                                                    placeholder-slate-400
+                                                    outline-none transition
+                                                    focus:border-[#0F172A]
+                                                    focus:ring-2
+                                                    focus:ring-slate-200
+                                                "
                                             />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
+                                        </div>
+
+                                        {/* DIFFICULTY */}
+                                        <div>
+                                            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                                Target Difficulty
+                                            </label>
+
+                                            <select
+                                                value={difficulty}
+                                                onChange={(e) =>
+                                                    setDifficulty(
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="
+                                                    w-full rounded-xl
+                                                    border border-slate-200
+                                                    bg-white px-4 py-3
+                                                    text-sm text-slate-800
+                                                    outline-none transition
+                                                    focus:border-[#0F172A]
+                                                    focus:ring-2
+                                                    focus:ring-slate-200
+                                                "
+                                            >
+                                                <option value="Easy">
+                                                    Easy — Fundamentals
+                                                </option>
+
+                                                <option value="Medium">
+                                                    Medium — Practical
+                                                    Development
+                                                </option>
+
+                                                <option value="Hard">
+                                                    Hard — Advanced & System
+                                                    Design
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
-                            )}
-                        </GlassCard>
+
+                                {/* LAUNCH BUTTON */}
+                                <button
+                                    type="button"
+                                    onClick={handleStartSession}
+                                    disabled={
+                                        loading ||
+                                        loadingResumes ||
+                                        resumes.length === 0 ||
+                                        !selectedResumeId ||
+                                        !roleTitle.trim()
+                                    }
+                                    className="
+                                        mt-8 flex w-full items-center
+                                        justify-center gap-2 rounded-xl
+                                        px-5 py-3.5 text-sm font-semibold
+                                        text-white shadow-md
+                                        transition-all duration-300
+                                        hover:-translate-y-0.5
+                                        hover:shadow-lg
+                                        disabled:cursor-not-allowed
+                                        disabled:opacity-50
+                                    "
+                                    style={{
+                                        backgroundColor: NAVY,
+                                    }}
+                                >
+                                    {loading
+                                        ? "Generating Session..."
+                                        : "Launch AI Interview →"}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* PERFORMANCE */}
+                        <div className="xl:col-span-7">
+                            <div
+                                className="
+                                    flex h-full flex-col
+                                    rounded-2xl border border-slate-200
+                                    bg-white p-8 shadow-sm
+                                    transition-all duration-300
+                                    hover:-translate-y-1
+                                    hover:shadow-xl
+                                "
+                            >
+                                <div className="mb-6 flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-900">
+                                            Performance Trend
+                                        </h3>
+
+                                        <p className="mt-1 text-xs text-slate-500">
+                                            Your interview performance over
+                                            time
+                                        </p>
+                                    </div>
+
+                                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-500">
+                                        No results yet
+                                    </span>
+                                </div>
+
+                                {chartData.length === 0 ? (
+                                    <div
+                                        className="
+                                            flex min-h-[350px]
+                                            flex-1 flex-col
+                                            items-center justify-center
+                                            rounded-xl border border-dashed
+                                            border-slate-200 bg-slate-50
+                                            text-center
+                                        "
+                                    >
+                                        <div
+                                            className="
+                                                mb-4 flex h-12 w-12
+                                                items-center justify-center
+                                                rounded-xl text-white
+                                                shadow-sm
+                                            "
+                                            style={{
+                                                backgroundColor:
+                                                    SIDEBAR_NAVY,
+                                                border: `1px solid ${SIDEBAR_ICON}`,
+                                            }}
+                                        >
+                                            <TrendingUp className="h-6 w-6" />
+                                        </div>
+
+                                        <p className="text-sm font-semibold text-slate-800">
+                                            Complete your first interview
+                                        </p>
+
+                                        <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
+                                            Your performance scores will
+                                            appear here once you complete an
+                                            interview.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="h-[350px] w-full">
+                                        <ResponsiveContainer
+                                            width="100%"
+                                            height="100%"
+                                        >
+                                            <AreaChart
+                                                data={chartData}
+                                                margin={{
+                                                    top: 10,
+                                                    right: 10,
+                                                    left: -20,
+                                                    bottom: 0,
+                                                }}
+                                            >
+                                                <CartesianGrid
+                                                    strokeDasharray="3 3"
+                                                    stroke="#e2e8f0"
+                                                />
+
+                                                <XAxis
+                                                    dataKey="session"
+                                                    stroke="#64748b"
+                                                    fontSize={12}
+                                                />
+
+                                                <YAxis
+                                                    stroke="#64748b"
+                                                    fontSize={12}
+                                                    domain={[0, 100]}
+                                                />
+
+                                                <Tooltip
+                                                    contentStyle={{
+                                                        backgroundColor:
+                                                            "#ffffff",
+                                                        borderColor:
+                                                            "#e2e8f0",
+                                                        borderRadius:
+                                                            "12px",
+                                                        color: NAVY,
+                                                    }}
+                                                />
+
+                                                <Area
+                                                    type="monotone"
+                                                    dataKey="score"
+                                                    stroke={NAVY}
+                                                    strokeWidth={3}
+                                                    fill={NAVY}
+                                                    fillOpacity={0.08}
+                                                />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </main>
-        </div>
+                </main>
+            </div>
+        </AppShell>
     );
 }

@@ -12,3 +12,4 @@ python-multipart
 pypdf
 openai
 email-validator
+httpx
