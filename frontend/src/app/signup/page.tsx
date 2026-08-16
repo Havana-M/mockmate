@@ -7,6 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { GlassCard } from "@/components/Glasscard";
 import { Button } from "@/components/Button";
 import { User, Mail, Lock, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function SignupPage() {
     const router = useRouter();
@@ -23,7 +24,7 @@ export default function SignupPage() {
         setError(null);
 
         try {
-            const res = await fetch("http://localhost:8000/api/auth/register", {
+            const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { GlassCard } from "@/components/Glasscard";
-
 import { Button } from "@/components/Button";
+import { API_BASE_URL } from "@/lib/api";
 import {
     ResponsiveContainer,
     AreaChart,
@@ -56,7 +56,7 @@ export default function DashboardPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem("mockmate_token");
-            const res = await fetch("http://localhost:8000/api/interview/generate", {
+            const res = await fetch(`${API_BASE_URL}/api/interview/generate`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
